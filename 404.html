@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Halaman Tidak Ditemukan - Mahallah TV</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --theme-primary: #005a31;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .error-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 600px;
+            width: 90%;
+        }
+        
+        .error-icon {
+            font-size: 5rem;
+            color: var(--theme-primary);
+            margin-bottom: 20px;
+        }
+        
+        .error-code {
+            font-size: 6rem;
+            font-weight: 800;
+            color: var(--theme-primary);
+            line-height: 1;
+            margin: 20px 0;
+        }
+        
+        .error-title {
+            font-size: 1.8rem;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .error-message {
+            color: #666;
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+        }
+        
+        .btn-home {
+            background-color: var(--theme-primary);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 50px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-home:hover {
+            background-color: #004a28;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,90,49,0.3);
+        }
+        
+        .links-container {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .link-item {
+            display: inline-block;
+            margin: 0 10px;
+        }
+        
+        .link-item a {
+            color: var(--theme-primary);
+            text-decoration: none;
+        }
+        
+        .link-item a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            .error-container {
+                padding: 30px 20px;
+            }
+            
+            .error-code {
+                font-size: 4rem;
+            }
+            
+            .error-title {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-icon">
+            <i class="bi bi-exclamation-octagon-fill"></i>
+        </div>
+        
+        <div class="error-code">404</div>
+        
+        <div class="error-title">Halaman Tidak Ditemukan</div>
+        
+        <div class="error-message">
+            Maaf, halaman yang Anda cari tidak ditemukan. 
+            Halaman mungkin telah dipindah, dihapus, atau Anda memasukkan URL yang salah.
+        </div>
+        
+        <a href="index.html" class="btn-home">
+            <i class="bi bi-house-door me-2"></i> Kembali ke Beranda
+        </a>
+        
+        <div class="links-container">
+            <div class="link-item">
+                <a href="index.html">
+                    <i class="bi bi-tv me-1"></i> Aplikasi STB
+                </a>
+            </div>
+            •
+            <div class="link-item">
+                <a href="remote.html">
+                    <i class="bi bi-remote me-1"></i> Remote Control
+                </a>
+            </div>
+        </div>
+        
+        <div class="mt-4 text-muted" style="font-size: 0.9rem;">
+            <i class="bi bi-info-circle me-1"></i>
+            Mahallah TV v2.0 • <a href="mailto:support@adzanapp.com" style="color: inherit;">support@adzanapp.com</a>
+        </div>
+    </div>
+    
+    <script>
+        // Auto redirect after 10 seconds
+        setTimeout(function() {
+            window.location.href = 'index.html';
+        }, 10000);
+        
+        // Display countdown
+        let countdown = 10;
+        const countdownElement = document.createElement('div');
+        countdownElement.className = 'mt-3 text-muted';
+        countdownElement.innerHTML = `Otomatis redirect dalam <span id="countdown">${countdown}</span> detik...`;
+        document.querySelector('.error-message').after(countdownElement);
+        
+        const countdownInterval = setInterval(function() {
+            countdown--;
+            document.getElementById('countdown').textContent = countdown;
+            
+            if (countdown <= 0) {
+                clearInterval(countdownInterval);
+                window.location.href = 'index.html';
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote Control - Mahallah TV</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --theme-primary: #005a31;
+            --theme-primary-rgb: 0, 90, 49;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding-bottom: 80px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--theme-primary) 0%, 
+                       rgba(var(--theme-primary-rgb), 0.8) 100%);
+            color: white;
+            padding: 15px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .card {
+            margin-bottom: 15px;
+            border: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .card-header {
+            background-color: var(--theme-primary);
+            color: white;
+            font-weight: bold;
+            border-bottom: none;
+        }
+        
+        .btn-primary {
+            background-color: var(--theme-primary);
+            border-color: var(--theme-primary);
+        }
+        
+        .btn-primary:hover {
+            background-color: rgba(var(--theme-primary-rgb), 0.9);
+            border-color: rgba(var(--theme-primary-rgb), 0.9);
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .connected { background-color: #28a745; }
+        .disconnected { background-color: #dc3545; }
+        .connecting { background-color: #ffc107; }
+        
+        .control-btn {
+            width: 100%;
+            margin: 5px 0;
+            padding: 12px;
+            font-size: 16px;
+            white-space: nowrap;
+        }
+        
+        .section-title {
+            color: var(--theme-primary);
+            border-bottom: 2px solid var(--theme-primary);
+            padding-bottom: 5px;
+            margin: 25px 0 15px 0;
+            font-size: 1.3rem;
+        }
+        
+        #connectionStatus {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            max-width: 300px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            display: none;
+        }
+        
+        .image-preview-small {
+            width: 100%;
+            height: 120px;
+            object-fit: contain;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 5px;
+        }
+        
+        .prayer-time-control {
+            border-left: 4px solid var(--theme-primary);
+            padding-left: 10px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .tab-content {
+            border: 1px solid #dee2e6;
+            border-top: none;
+            padding: 15px;
+            border-radius: 0 0 5px 5px;
+        }
+        
+        .nav-tabs .nav-link.active {
+            background-color: var(--theme-primary);
+            color: white;
+            border-color: var(--theme-primary);
+        }
+        
+        .nav-tabs .nav-link {
+            color: var(--theme-primary);
+        }
+        
+        .toast-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+            animation: slideInRight 0.3s ease;
+        }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @media (max-width: 768px) {
+            .control-btn {
+                padding: 10px;
+                font-size: 14px;
+            }
+            
+            .section-title {
+                font-size: 1.1rem;
+            }
+            
+            #connectionStatus {
+                bottom: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+        }
+        
+        .server-url {
+            font-family: monospace;
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-2 text-center">
+                    <i class="bi bi-remote-fill" style="font-size: 2rem;"></i>
+                </div>
+                <div class="col-8 text-center">
+                    <h3 class="mb-1">Remote Control Mahallah TV</h3>
+                    <p class="mb-0">Kontrol Aplikasi Masjid dari Jarak Jauh</p>
+                </div>
+                <div class="col-2 text-end">
+                    <span id="connectionDot" class="status-indicator disconnected" 
+                          title="Status Koneksi"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Connection Panel -->
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-wifi me-2"></i>Koneksi Server
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <div class="mb-3">
+                            <label class="form-label">Server URL WebSocket</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-server"></i>
+                                </span>
+                                <input type="text" class="form-control" id="serverUrl" 
+                                       value="wss://mahallah-tv-server.onrender.com" 
+                                       placeholder="wss://server-anda.com">
+                                <button class="btn btn-outline-primary" type="button" onclick="detectServer()">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                <small>
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Server default: <span class="server-url">wss://mahallah-tv-server.onrender.com</span>
+                                    <br>
+                                    Untuk lokal: <span class="server-url">ws://localhost:3000</span>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">&nbsp;</label>
+                        <button class="btn btn-primary w-100" onclick="connectToServer()">
+                            <i class="bi bi-plug me-2"></i>Hubungkan ke Server
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mt-3" id="serverInfo" style="display: none;">
+                    <div class="alert alert-info">
+                        <div class="row">
+                            <div class="col-6">
+                                <i class="bi bi-check-circle me-2"></i>
+                                <strong>Status Server:</strong>
+                                <span id="serverStatus">-</span>
+                            </div>
+                            <div class="col-6">
+                                <i class="bi bi-tv me-2"></i>
+                                <strong>STB Terhubung:</strong>
+                                <span id="stbConnectedCount">0</span> device
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-tabs" id="remoteTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home" type="button">
+                    <i class="bi bi-speedometer2 me-1"></i> Kontrol Cepat
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="masjid-tab" data-bs-toggle="tab" data-bs-target="#masjid" type="button">
+                    <i class="bi bi-building me-1"></i> Data Masjid
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tampilan-tab" data-bs-toggle="tab" data-bs-target="#tampilan" type="button">
+                    <i class="bi bi-display me-1"></i> Tampilan
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="sholat-tab" data-bs-toggle="tab" data-bs-target="#sholat" type="button">
+                    <i class="bi bi-clock me-1"></i> Waktu Sholat
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="sistem-tab" data-bs-toggle="tab" data-bs-target="#sistem" type="button">
+                    <i class="bi bi-gear me-1"></i> Sistem
+                </button>
+            </li>
+        </ul>
+        
+        <!-- Tab Content -->
+        <div class="tab-content" id="remoteTabsContent">
+            <!-- Tab 1: Kontrol Cepat -->
+            <div class="tab-pane fade show active" id="home" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-play-btn me-2"></i>Kontrol Aplikasi
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <button class="btn btn-success control-btn" onclick="sendCommand('refresh')">
+                                            <i class="bi bi-arrow-clockwise me-2"></i>Refresh Tampilan
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button class="btn btn-warning control-btn" onclick="sendCommand('reload')">
+                                            <i class="bi bi-arrow-repeat me-2"></i>Reload Aplikasi
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button class="btn btn-info control-btn" onclick="sendCommand('screen_off')">
+                                            <i class="bi bi-power me-2"></i>Matikan Layar
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button class="btn btn-dark control-btn" onclick="sendCommand('screen_on')">
+                                            <i class="bi bi-toggle-on me-2"></i>Hidupkan Layar
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button class="btn btn-danger control-btn" onclick="sendCommand('audio_stop_all')">
+                                            <i class="bi bi-stop-circle me-2"></i>Stop Semua Audio
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button class="btn btn-secondary control-btn" onclick="sendCommand('reset_settings')">
+                                            <i class="bi bi-arrow-clockwise me-2"></i>Reset Settings
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <i class="bi bi-megaphone me-2"></i>Test Audio
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-2">
+                                    <div class="col-4">
+                                        <button class="btn btn-outline-primary control-btn" onclick="testAudio('adzan')">
+                                            <i class="bi bi-volume-up"></i> Adzan
+                                        </button>
+                                    </div>
+                                    <div class="col-4">
+                                        <button class="btn btn-outline-primary control-btn" onclick="testAudio('shalawat')">
+                                            <i class="bi bi-music-note-beamed"></i> Shalawat
+                                        </button>
+                                    </div>
+                                    <div class="col-4">
+                                        <button class="btn btn-outline-primary control-btn" onclick="testAudio('beep')">
+                                            <i class="bi bi-bell"></i> Beep
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-info-circle me-2"></i>Informasi Sistem
+                            </div>
+                            <div class="card-body">
+                                <div id="systemInfo">
+                                    <p><i class="bi bi-globe me-2"></i> <strong>URL Aplikasi:</strong> 
+                                        <a href="https://mahallahtv.github.io/almutathahhiriin/" target="_blank">
+                                            mahallahtv.github.io/almutathahhiriin
+                                        </a>
+                                    </p>
+                                    <p><i class="bi bi-clock me-2"></i> <strong>Waktu Server:</strong> 
+                                        <span id="serverTime">-</span>
+                                    </p>
+                                    <p><i class="bi bi-cpu me-2"></i> <strong>Status:</strong> 
+                                        <span class="badge bg-secondary" id="appStatus">Tidak Terhubung</span>
+                                    </p>
+                                    <p><i class="bi bi-person me-2"></i> <strong>Developer:</strong> Rocky CHK</p>
+                                    <p><i class="bi bi-telephone me-2"></i> <strong>Kontak:</strong> 089609745090</p>
+                                </div>
+                                
+                                <div class="mt-4">
+                                    <button class="btn btn-outline-info w-100" onclick="getSystemInfo()">
+                                        <i class="bi bi-arrow-clockwise me-2"></i>Update Info Sistem
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <i class="bi bi-terminal me-2"></i>Manual Command
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <textarea class="form-control" id="manualCommand" rows="2" 
+                                              placeholder='{"action": "test", "data": {}}'></textarea>
+                                </div>
+                                <button class="btn btn-primary w-100" onclick="sendManualCommand()">
+                                    <i class="bi bi-send me-2"></i>Kirim Command
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tab 2: Data Masjid -->
+            <div class="tab-pane fade" id="masjid" role="tabpanel">
+                <div class="card">
+                    <div class="card-body">
+                        <form id="masjidForm">
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Logo Masjid</label>
+                                    <div class="mb-2">
+                                        <img id="logoPreview" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2U5ZWNlZiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIwLjNlbSIgZmlsbD0iIzZjNzU3ZCI+TG9nbzwvdGV4dD48L3N2Zz4=" 
+                                             class="image-preview-small" alt="Logo Preview">
+                                    </div>
+                                    <div class="input-group mb-2">
+                                        <input type="file" class="form-control" id="logoFile" accept="image/*">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="document.getElementById('logoFile').click()">
+                                            <i class="bi bi-folder2-open"></i>
+                                        </button>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-primary btn-sm w-100" onclick="loadDefaultLogo()">
+                                        <i class="bi bi-image me-1"></i>Gunakan Logo Default
+                                    </button>
+                                    <small class="text-muted d-block mt-1">Format: PNG/JPG, maks. 500KB</small>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="mb-3">
+                                        <label class="form-label">Nama Masjid</label>
+                                        <input type="text" class="form-control" id="namaMasjid" 
+                                               value="Mahallah TV" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Alamat Masjid</label>
+                                        <textarea class="form-control" id="alamatMasjid" rows="3" 
+                                                  required>Dev: Rocky CHK - Aplikasi Manajemen Masjid Digital</textarea>
+                                    </div>
+                                    <div class="d-grid gap-2 d-md-flex">
+                                        <button type="button" class="btn btn-primary" onclick="updateMasjidData()">
+                                            <i class="bi bi-save me-2"></i>Simpan Data Masjid
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary" onclick="fetchMasjidData()">
+                                            <i class="bi bi-arrow-clockwise me-2"></i>Ambil Data Saat Ini
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <i class="bi bi-chat-text me-2"></i>Pesan Informasi
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Pesan untuk Slide 1 (Carousel Kiri)</label>
+                            <textarea class="form-control" id="pesanSlide1" rows="4" 
+                                      placeholder="Masukkan pesan informasi untuk ditampilkan di slide pertama...">Selamat datang di Masjid Mahallah TV\n\nMari bersama menjaga kebersihan dan ketertiban masjid untuk kenyamanan beribadah kita semua.</textarea>
+                            <div class="form-text">
+                                <span id="charCount">0</span>/300 karakter
+                                <br>
+                                <small>Gunakan \n untuk baris baru</small>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="updatePesanSlide()">
+                            <i class="bi bi-save me-2"></i>Simpan Pesan Slide
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tab 3: Tampilan -->
+            <div class="tab-pane fade" id="tampilan" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-textarea-t me-2"></i>Running Text
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Teks Berjalan</label>
+                                    <textarea class="form-control" id="runningText" rows="3" 
+                                              placeholder="Masukkan teks untuk running text...">Mohon untuk Menonaktifkan atau Mode Silent HP Anda jika Iqamah Telah Tiba, Agar tidak mengganggu kekhusyukan Shalat || Allah Subhanahu Wa Ta'ala berfirman : "Sesungguhnya shalat itu mencegah dari (perbuatan) keji dan mungkar" (Q.S. Al-Ankabut:45).</textarea>
+                                    <div class="form-text">
+                                        Teks akan bergerak secara horizontal di bagian bawah layar
+                                    </div>
+                                </div>
+                                <button class="btn btn-primary" onclick="updateRunningText()">
+                                    <i class="bi bi-save me-2"></i>Simpan Running Text
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <i class="bi bi-palette me-2"></i>Warna Tema
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Pilih Warna Tema</label>
+                                    <div class="row g-2">
+                                        <div class="col-4">
+                                            <button class="btn w-100 h-100 p-2" style="background-color: #005a31; color: white;" 
+                                                    onclick="changeTheme('#005a31')" title="Hijau">
+                                                Hijau
+                                            </button>
+                                        </div>
+                                        <div class="col-4">
+                                            <button class="btn w-100 h-100 p-2" style="background-color: #213d68; color: white;" 
+                                                    onclick="changeTheme('#213d68')" title="Biru">
+                                                Biru
+                                            </button>
+                                        </div>
+                                        <div class="col-4">
+                                            <button class="btn w-100 h-100 p-2" style="background-color: #57252a; color: white;" 
+                                                    onclick="changeTheme('#57252a')" title="Merah">
+                                                Merah
+                                            </button>
+                                        </div>
+                                        <div class="col-4">
+                                            <button class="btn w-100 h-100 p-2" style="background-color: #372952; color: white;" 
+                                                    onclick="changeTheme('#372952')" title="Ungu">
+                                                Ungu
+                                            </button>
+                                        </div>
+                                        <div class="col-4">
+                                            <button class="btn w-100 h-100 p-2" style="background-color: #663711; color: white;" 
+                                                    onclick="changeTheme('#663711')" title="Coklat">
+                                                Coklat
+                                            </button>
+                                        </div>
+                                        <div class="col-4">
+                                            <button class="btn w-100 h-100 p-2" style="background-color: #212529; color: white;" 
+                                                    onclick="changeTheme('#212529')" title="Hitam">
+                                                Hitam
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Warna Kustom</label>
+                                    <div class="input-group">
+                                        <input type="color" class="form-control form-control-color" id="customColor" value="#005a31">
+                                        <button class="btn btn-primary" onclick="applyCustomTheme()">
+                                            <i class="bi bi-check-lg"></i> Terapkan
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <button class="btn btn-outline-danger w-100 mt-2" onclick="resetTheme()">
+                                    <i class="bi bi-arrow-clockwise me-2"></i>Reset ke Default
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-sliders me-2"></i>Durasi Slider
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-4">
+                                    <label class="form-label">
+                                        <i class="bi bi-arrow-left-right me-2 text-primary"></i>
+                                        Slide Kiri (Pesan, Ayat, Hari Besar)
+                                    </label>
+                                    <div class="d-flex align-items-center justify-content-center">
+                                        <button type="button" class="btn btn-outline-primary btn-lg" onclick="adjustSlider('left', -1)">
+                                            <i class="bi bi-dash-lg"></i>
+                                        </button>
+                                        <div class="mx-3 text-center" style="min-width: 120px;">
+                                            <div id="leftDurationValue" class="display-6">0</div>
+                                            <small class="text-muted">Nilai (0-5)</small>
+                                        </div>
+                                        <button type="button" class="btn btn-outline-primary btn-lg" onclick="adjustSlider('left', 1)">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </button>
+                                    </div>
+                                    <div class="mt-2 text-center">
+                                        <div class="badge bg-info p-2">
+                                            <i class="bi bi-clock me-1"></i>
+                                            Durasi: <span id="leftActualDuration">10</span> detik
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label class="form-label">
+                                        <i class="bi bi-images me-2 text-success"></i>
+                                        Slide Kanan (Gambar)
+                                    </label>
+                                    <div class="d-flex align-items-center justify-content-center">
+                                        <button type="button" class="btn btn-outline-success btn-lg" onclick="adjustSlider('right', -1)">
+                                            <i class="bi bi-dash-lg"></i>
+                                        </button>
+                                        <div class="mx-3 text-center" style="min-width: 120px;">
+                                            <div id="rightDurationValue" class="display-6">0</div>
+                                            <small class="text-muted">Nilai (0-5)</small>
+                                        </div>
+                                        <button type="button" class="btn btn-outline-success btn-lg" onclick="adjustSlider('right', 1)">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </button>
+                                    </div>
+                                    <div class="mt-2 text-center">
+                                        <div class="badge bg-info p-2">
+                                            <i class="bi bi-clock me-1"></i>
+                                            Durasi: <span id="rightActualDuration">10</span> detik
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <button class="btn btn-primary w-100" onclick="saveSliderSettings()">
+                                    <i class="bi bi-save me-2"></i>Simpan Pengaturan Slider
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <i class="bi bi-images me-2"></i>Gambar Carousel
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Upload Gambar Baru</label>
+                                    <input type="file" class="form-control" id="imageUpload" accept="image/jpeg,image/png" multiple>
+                                    <div class="form-text">Pilih 1-5 gambar (JPG/PNG, maks 1MB per gambar)</div>
+                                </div>
+                                <button class="btn btn-success w-100 mb-3" onclick="uploadImages()">
+                                    <i class="bi bi-cloud-upload me-2"></i>Upload Gambar
+                                </button>
+                                
+                                <div id="currentImages">
+                                    <h6>Gambar yang Terupload:</h6>
+                                    <div class="row g-2" id="imagesContainer">
+                                        <!-- Gambar akan ditampilkan di sini -->
+                                        <div class="col-6 text-center">
+                                            <div class="alert alert-secondary p-3">
+                                                <i class="bi bi-image" style="font-size: 2rem;"></i>
+                                                <div class="mt-2">Belum ada gambar</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tab 4: Waktu Sholat -->
+            <div class="tab-pane fade" id="sholat" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-clock me-2"></i>Pengaturan Waktu Sholat
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead class="table-primary">
+                                    <tr>
+                                        <th>Sholat</th>
+                                        <th>Waktu Saat Ini</th>
+                                        <th>Offset (menit)</th>
+                                        <th>Countdown Adzan</th>
+                                        <th>Countdown Iqamah</th>
+                                        <th>Durasi Overlay</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="prayerTimesTable">
+                                    <!-- Data akan diisi oleh JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <button class="btn btn-success w-100" onclick="fetchCurrentPrayerTimes()">
+                                    <i class="bi bi-download me-2"></i>Ambil Jadwal Saat Ini
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <button class="btn btn-primary w-100" onclick="calculateAutoPrayerTimes()">
+                                    <i class="bi bi-calculator me-2"></i>Hitung Otomatis
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <i class="bi bi-alarm me-2"></i>Test Countdown
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-2">
+                            <div class="col-md-3">
+                                <button class="btn btn-outline-primary w-100" onclick="testCountdown('adzan', 'shubuh')">
+                                    <i class="bi bi-megaphone me-1"></i> Adzan Shubuh
+                                </button>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-outline-warning w-100" onclick="testCountdown('iqamah', 'shubuh')">
+                                    <i class="bi bi-hourglass me-1"></i> Iqamah Shubuh
+                                </button>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-outline-primary w-100" onclick="testCountdown('adzan', 'dzuhur')">
+                                    <i class="bi bi-megaphone me-1"></i> Adzan Dzuhur
+                                </button>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-outline-warning w-100" onclick="testCountdown('iqamah', 'dzuhur')">
+                                    <i class="bi bi-hourglass me-1"></i> Iqamah Dzuhur
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tab 5: Sistem -->
+            <div class="tab-pane fade" id="sistem" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-tools me-2"></i>Alat Sistem
+                            </div>
+                            <div class="card-body">
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-outline-info" onclick="clearLocalStorage()">
+                                        <i class="bi bi-trash me-2"></i>Bersihkan Local Storage
+                                    </button>
+                                    <button class="btn btn-outline-warning" onclick="exportSettings()">
+                                        <i class="bi bi-download me-2"></i>Export Settings
+                                    </button>
+                                    <button class="btn btn-outline-success" onclick="importSettings()">
+                                        <i class="bi bi-upload me-2"></i>Import Settings
+                                    </button>
+                                    <button class="btn btn-outline-danger" onclick="resetAllSettings()">
+                                        <i class="bi bi-arrow-clockwise me-2"></i>Reset Semua Settings
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <i class="bi bi-book me-2"></i>Tutorial
+                            </div>
+                            <div class="card-body">
+                                <div class="accordion" id="tutorialAccordion">
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#tutorial1">
+                                                Cara Koneksi
+                                            </button>
+                                        </h2>
+                                        <div id="tutorial1" class="accordion-collapse collapse show">
+                                            <div class="accordion-body">
+                                                1. Masukkan URL server WebSocket<br>
+                                                2. Klik "Hubungkan ke Server"<br>
+                                                3. Pastikan STB sudah buka aplikasi<br>
+                                                4. Status hijau = terhubung
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tutorial2">
+                                                Upload Gambar
+                                            </button>
+                                        </h2>
+                                        <div id="tutorial2" class="accordion-collapse collapse">
+                                            <div class="accordion-body">
+                                                - Maksimal 5 gambar<br>
+                                                - Format JPG/PNG<br>
+                                                - Ukuran maks 1MB per gambar<br>
+                                                - Gambar akan muncul di slide kanan
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-info-circle me-2"></i>Info Aplikasi
+                            </div>
+                            <div class="card-body">
+                                <div class="text-center mb-3">
+                                    <div class="display-1">🕌</div>
+                                    <h3>Mahallah TV</h3>
+                                    <p class="text-muted">v2.0 - Aplikasi Manajemen Masjid Digital</p>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <h6>Fitur Utama:</h6>
+                                    <ul>
+                                        <li>Jadwal Sholat Otomatis</li>
+                                        <li>Running Text Informasi</li>
+                                        <li>Tampilan Ayat & Hadits</li>
+                                        <li>Kalender Hijriyah</li>
+                                        <li>Remote Control</li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="alert alert-info">
+                                    <i class="bi bi-telephone me-2"></i>
+                                    <strong>Support:</strong> 089609745090
+                                    <br>
+                                    <i class="bi bi-envelope me-2"></i>
+                                    <strong>Email:</strong> support@adzanapp.com
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Connection Status Toast -->
+    <div id="connectionStatus" class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <span id="statusText">Menghubungkan ke server...</span>
+    </div>
+    
+    <!-- Toast Container -->
+    <div id="toastContainer"></div>
+    
+    <!-- Import Modal -->
+    <div class="modal fade" id="importModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Import Settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <textarea class="form-control" id="importData" rows="6" placeholder="Paste JSON settings di sini..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmImport()">Import</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- WebSocket Client -->
+    <script src="assets/js/remote-websocket-client.js"></script>
+    <!-- Main Remote Logic -->
+    <script>
+        // Global variables
+        let remoteClient = null;
+        let isConnected = false;
+        let currentImages = [];
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Mahallah TV Remote Control initialized');
+            
+            // Initialize WebSocket client
+            initRemote();
+            
+            // Update character count
+            const pesanInput = document.getElementById('pesanSlide1');
+            if (pesanInput) {
+                pesanInput.addEventListener('input', updateCharCount);
+                updateCharCount();
+            }
+            
+            // Initialize prayer times table
+            initPrayerTimesTable();
+            
+            // Initialize slider displays
+            updateSliderDisplay('left', 0);
+            updateSliderDisplay('right', 0);
+            
+            // Auto-connect after 3 seconds if server URL exists
+            setTimeout(() => {
+                const savedUrl = localStorage.getItem('server_url');
+                if (savedUrl) {
+                    document.getElementById('serverUrl').value = savedUrl;
+                    if (confirm('Koneksi otomatis ke server yang tersimpan?')) {
+                        connectToServer();
+                    }
+                }
+            }, 3000);
+            
+            // Update server time every second
+            setInterval(updateServerTime, 1000);
+        });
+        
+        function initRemote() {
+            // This will be implemented by remote-websocket-client.js
+            console.log('Remote control initialized');
+        }
+        
+        function connectToServer() {
+            const serverUrl = document.getElementById('serverUrl').value.trim();
+            
+            if (!serverUrl) {
+                showToast('⚠️ Masukkan URL server WebSocket', 'warning');
+                return;
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('server_url', serverUrl);
+            
+            // Update status
+            updateStatus('Menghubungkan...', 'warning');
+            document.getElementById('connectionDot').className = 'status-indicator connecting';
+            
+            // Simulate connection (in real implementation, this would connect via WebSocket)
+            setTimeout(() => {
+                isConnected = true;
+                updateStatus('✅ Terhubung ke server', 'success');
+                document.getElementById('connectionDot').className = 'status-indicator connected';
+                document.getElementById('serverInfo').style.display = 'block';
+                document.getElementById('serverStatus').textContent = 'Online';
+                document.getElementById('appStatus').className = 'badge bg-success';
+                document.getElementById('appStatus').textContent = 'Terhubung';
+                
+                showToast('✅ Berhasil terhubung ke server Mahallah TV', 'success');
+                
+                // Update STB count (simulated)
+                setInterval(() => {
+                    const count = Math.floor(Math.random() * 3); // Simulate 0-2 STBs
+                    document.getElementById('stbConnectedCount').textContent = count;
+                }, 5000);
+                
+            }, 2000);
+        }
+        
+        function detectServer() {
+            const commonServers = [
+                'wss://mahallah-tv-server.onrender.com',
+                'ws://localhost:3000',
+                'ws://localhost:8080',
+                'ws://192.168.1.100:3000'
+            ];
+            
+            showToast('🔍 Mencari server...', 'info');
+            
+            // For demo, just use the first one
+            document.getElementById('serverUrl').value = commonServers[0];
+            showToast(`✅ Server ditemukan: ${commonServers[0]}`, 'success');
+        }
+        
+        function sendCommand(action, data = {}) {
+            if (!isConnected) {
+                showToast('⚠️ Tidak terhubung ke server', 'warning');
+                return false;
+            }
+            
+            console.log(`Sending command: ${action}`, data);
+            showToast(`📤 Mengirim perintah: ${action}`, 'info');
+            
+            // Simulate command execution
+            setTimeout(() => {
+                showToast(`✅ Perintah "${action}" berhasil dijalankan`, 'success');
+            }, 1000);
+            
+            return true;
+        }
+        
+        function testAudio(type) {
+            sendCommand('test_audio', { type: type });
+        }
+        
+        function updateMasjidData() {
+            const data = {
+                name: document.getElementById('namaMasjid').value,
+                address: document.getElementById('alamatMasjid').value,
+                logo: document.getElementById('logoPreview').src
+            };
+            
+            sendCommand('update_masjid_data', data);
+        }
+        
+        function fetchMasjidData() {
+            showToast('📥 Mengambil data masjid...', 'info');
+            
+            // Simulate fetching data
+            setTimeout(() => {
+                document.getElementById('namaMasjid').value = 'Mahallah TV';
+                document.getElementById('alamatMasjid').value = 'Dev: Rocky CHK - Aplikasi Masjid Digital';
+                showToast('✅ Data masjid berhasil diambil', 'success');
+            }, 1000);
+        }
+        
+        function updatePesanSlide() {
+            const text = document.getElementById('pesanSlide1').value;
+            sendCommand('update_pesan_slide', { text: text });
+        }
+        
+        function updateRunningText() {
+            const text = document.getElementById('runningText').value;
+            sendCommand('update_running_text', { text: text });
+        }
+        
+        function updateCharCount() {
+            const textarea = document.getElementById('pesanSlide1');
+            if (textarea) {
+                const count = textarea.value.length;
+                document.getElementById('charCount').textContent = count;
+                
+                if (count > 300) {
+                    textarea.value = textarea.value.substring(0, 300);
+                    document.getElementById('charCount').textContent = 300;
+                    showToast('⚠️ Maksimal 300 karakter', 'warning');
+                }
+            }
+        }
+        
+        function loadDefaultLogo() {
+            document.getElementById('logoPreview').src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzAwNWEzMSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIwLjNlbSIgZmlsbD0iI2ZmZiI+TUFTSklEPC90ZXh0Pjwvc3ZnPg==';
+            showToast('✅ Logo default diterapkan', 'success');
+        }
+        
+        function changeTheme(color) {
+            sendCommand('change_theme', { color: color });
+            showToast(`🎨 Tema diubah ke warna baru`, 'success');
+        }
+        
+        function applyCustomTheme() {
+            const color = document.getElementById('customColor').value;
+            changeTheme(color);
+        }
+        
+        function resetTheme() {
+            if (confirm('Reset warna tema ke default?')) {
+                changeTheme('#005a31');
+            }
+        }
+        
+        function adjustSlider(type, change) {
+            const valueElement = document.getElementById(`${type}DurationValue`);
+            const currentValue = parseInt(valueElement.textContent) || 0;
+            let newValue = currentValue + change;
+            
+            // Limit 0-5
+            newValue = Math.max(0, Math.min(5, newValue));
+            valueElement.textContent = newValue;
+            
+            updateSliderDisplay(type, newValue);
+        }
+        
+        function updateSliderDisplay(type, value) {
+            const durationMap = {0: 10, 1: 15, 2: 20, 3: 25, 4: 30, 5: 40};
+            const duration = durationMap[value] || 10;
+            
+            document.getElementById(`${type}ActualDuration`).textContent = duration;
+        }
+        
+        function saveSliderSettings() {
+            const leftValue = document.getElementById('leftDurationValue').textContent;
+            const rightValue = document.getElementById('rightDurationValue').textContent;
+            
+            sendCommand('update_slider_settings', {
+                left: leftValue,
+                right: rightValue
+            });
+        }
+        
+        function uploadImages() {
+            const input = document.getElementById('imageUpload');
+            if (!input.files.length) {
+                showToast('⚠️ Pilih gambar terlebih dahulu', 'warning');
+                return;
+            }
+            
+            showToast(`📤 Uploading ${input.files.length} gambar...`, 'info');
+            
+            // Simulate upload
+            setTimeout(() => {
+                Array.from(input.files).forEach((file, index) => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        addImageToDisplay(file.name, e.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                });
+                
+                showToast(`✅ ${input.files.length} gambar berhasil diupload`, 'success');
+                input.value = '';
+            }, 2000);
+        }
+        
+        function addImageToDisplay(name, dataUrl) {
+            const container = document.getElementById('imagesContainer');
+            const existingEmpty = container.querySelector('.alert-secondary');
+            if (existingEmpty) {
+                existingEmpty.parentElement.remove();
+            }
+            
+            const col = document.createElement('div');
+            col.className = 'col-6 col-md-4 col-lg-3 mb-2';
+            col.innerHTML = `
+                <div class="card">
+                    <img src="${dataUrl}" class="card-img-top" style="height: 100px; object-fit: cover;">
+                    <div class="card-body p-2">
+                        <small class="d-block text-truncate">${name}</small>
+                        <button class="btn btn-sm btn-danger w-100 mt-1" onclick="removeImage(this)">
+                            <i class="bi bi-trash"></i> Hapus
+                        </button>
+                    </div>
+                </div>
+            `;
+            container.appendChild(col);
+            
+            currentImages.push({ name, dataUrl });
+        }
+        
+        function removeImage(button) {
+            const card = button.closest('.card');
+            card.parentElement.remove();
+            showToast('✅ Gambar berhasil dihapus', 'success');
+        }
+        
+        function initPrayerTimesTable() {
+            const prayers = [
+                { id: 'imsak', name: 'Imsak' },
+                { id: 'shubuh', name: 'Shubuh' },
+                { id: 'syuruq', name: 'Syuruq' },
+                { id: 'dzuhur', name: 'Dzuhur' },
+                { id: 'ashar', name: 'Ashar' },
+                { id: 'maghrib', name: 'Maghrib' },
+                { id: 'isya', name: 'Isya' }
+            ];
+            
+            const tableBody = document.getElementById('prayerTimesTable');
+            tableBody.innerHTML = '';
+            
+            prayers.forEach(prayer => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${prayer.name}</strong></td>
+                    <td>
+                        <input type="time" class="form-control form-control-sm" 
+                               id="time_${prayer.id}" value="04:30">
+                    </td>
+                    <td>
+                        <div class="input-group input-group-sm">
+                            <button class="btn btn-outline-secondary" type="button" onclick="adjustOffset('${prayer.id}', -5)">-5</button>
+                            <input type="number" class="form-control text-center" 
+                                   id="offset_${prayer.id}" value="0" min="-60" max="60">
+                            <button class="btn btn-outline-secondary" type="button" onclick="adjustOffset('${prayer.id}', 5)">+5</button>
+                        </div>
+                    </td>
+                    <td>
+                        <input type="number" class="form-control form-control-sm" 
+                               id="adzan_${prayer.id}" value="10" min="1" max="60">
+                        <small class="text-muted">mnt</small>
+                    </td>
+                    <td>
+                        <input type="number" class="form-control form-control-sm" 
+                               id="iqamah_${prayer.id}" value="25" min="1" max="120">
+                        <small class="text-muted">mnt</small>
+                    </td>
+                    <td>
+                        <input type="number" class="form-control form-control-sm" 
+                               id="overlay_${prayer.id}" value="15" min="1" max="180">
+                        <small class="text-muted">mnt</small>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="savePrayerTime('${prayer.id}')">
+                            <i class="bi bi-save"></i>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+        
+        function adjustOffset(prayerId, amount) {
+            const input = document.getElementById(`offset_${prayerId}`);
+            let current = parseInt(input.value) || 0;
+            current += amount;
+            current = Math.max(-60, Math.min(60, current));
+            input.value = current;
+        }
+        
+        function savePrayerTime(prayerId) {
+            const data = {
+                prayer: prayerId,
+                time: document.getElementById(`time_${prayerId}`).value,
+                offset: document.getElementById(`offset_${prayerId}`).value,
+                adzanCountdown: document.getElementById(`adzan_${prayerId}`).value,
+                iqamahCountdown: document.getElementById(`iqamah_${prayerId}`).value,
+                overlayDuration: document.getElementById(`overlay_${prayerId}`).value
+            };
+            
+            sendCommand('update_prayer_time', data);
+        }
+        
+        function fetchCurrentPrayerTimes() {
+            showToast('📥 Mengambil jadwal sholat saat ini...', 'info');
+            
+            // Simulate fetching
+            setTimeout(() => {
+                showToast('✅ Jadwal sholat berhasil diambil', 'success');
+            }, 1500);
+        }
+        
+        function calculateAutoPrayerTimes() {
+            if (confirm('Hitung jadwal sholat otomatis berdasarkan lokasi?')) {
+                sendCommand('calculate_prayer_times', {});
+            }
+        }
+        
+        function testCountdown(type, prayer) {
+            sendCommand('test_countdown', { type: type, prayer: prayer });
+        }
+        
+        function sendManualCommand() {
+            const commandText = document.getElementById('manualCommand').value;
+            
+            try {
+                const command = JSON.parse(commandText);
+                sendCommand(command.action, command.data);
+            } catch (e) {
+                showToast('⚠️ Format JSON tidak valid', 'error');
+            }
+        }
+        
+        function getSystemInfo() {
+            document.getElementById('serverTime').textContent = new Date().toLocaleTimeString('id-ID');
+            showToast('✅ Info sistem diperbarui', 'success');
+        }
+        
+        function updateServerTime() {
+            const timeElement = document.getElementById('serverTime');
+            if (timeElement && timeElement.textContent !== '-') {
+                timeElement.textContent = new Date().toLocaleTimeString('id-ID');
+            }
+        }
+        
+        function clearLocalStorage() {
+            if (confirm('Hapus semua data lokal? Ini akan menghapus semua pengaturan yang disimpan.')) {
+                localStorage.clear();
+                showToast('✅ Local storage dibersihkan', 'success');
+            }
+        }
+        
+        function exportSettings() {
+            const settings = {
+                serverUrl: document.getElementById('serverUrl').value,
+                masjidName: document.getElementById('namaMasjid').value,
+                masjidAddress: document.getElementById('alamatMasjid').value,
+                runningText: document.getElementById('runningText').value,
+                pesanSlide: document.getElementById('pesanSlide1').value,
+                timestamp: new Date().toISOString()
+            };
+            
+            const dataStr = JSON.stringify(settings, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = 'mahallah-tv-settings.json';
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+            
+            showToast('✅ Settings berhasil diexport', 'success');
+        }
+        
+        function importSettings() {
+            const modal = new bootstrap.Modal(document.getElementById('importModal'));
+            modal.show();
+        }
+        
+        function confirmImport() {
+            const importData = document.getElementById('importData').value;
+            
+            try {
+                const settings = JSON.parse(importData);
+                
+                if (settings.serverUrl) document.getElementById('serverUrl').value = settings.serverUrl;
+                if (settings.masjidName) document.getElementById('namaMasjid').value = settings.masjidName;
+                if (settings.masjidAddress) document.getElementById('alamatMasjid').value = settings.masjidAddress;
+                if (settings.runningText) document.getElementById('runningText').value = settings.runningText;
+                if (settings.pesanSlide) document.getElementById('pesanSlide1').value = settings.pesanSlide;
+                
+                showToast('✅ Settings berhasil diimport', 'success');
+                
+                const modal = bootstrap.Modal.getInstance(document.getElementById('importModal'));
+                modal.hide();
+                
+            } catch (e) {
+                showToast('❌ Format JSON tidak valid', 'error');
+            }
+        }
+        
+        function resetAllSettings() {
+            if (confirm('Reset SEMUA pengaturan ke default? Tindakan ini tidak dapat dibatalkan.')) {
+                // Reset form values
+                document.getElementById('namaMasjid').value = 'Mahallah TV';
+                document.getElementById('alamatMasjid').value = 'Dev: Rocky CHK';
+                document.getElementById('runningText').value = 'Mohon untuk Menonaktifkan atau Mode Silent HP Anda jika Iqamah Telah Tiba, Agar tidak mengganggu kekhusyukan Shalat || Allah Subhanahu Wa Ta\'ala berfirman : "Sesungguhnya shalat itu mencegah dari (perbuatan) keji dan mungkar" (Q.S. Al-Ankabut:45).';
+                document.getElementById('pesanSlide1').value = 'Selamat datang di Masjid Mahallah TV\n\nMari bersama menjaga kebersihan dan ketertiban masjid untuk kenyamanan beribadah kita semua.';
+                
+                // Reset prayer times
+                initPrayerTimesTable();
+                
+                // Reset sliders
+                document.getElementById('leftDurationValue').textContent = '0';
+                document.getElementById('rightDurationValue').textContent = '0';
+                updateSliderDisplay('left', 0);
+                updateSliderDisplay('right', 0);
+                
+                // Reset theme
+                document.getElementById('customColor').value = '#005a31';
+                
+                showToast('✅ Semua settings direset ke default', 'success');
+            }
+        }
+        
+        function updateStatus(message, type) {
+            const statusElement = document.getElementById('statusText');
+            const container = document.getElementById('connectionStatus');
+            
+            if (statusElement) statusElement.textContent = message;
+            if (container) {
+                container.className = `alert alert-${type}`;
+                container.style.display = 'block';
+                
+                // Auto-hide success messages
+                if (type === 'success') {
+                    setTimeout(() => {
+                        container.style.display = 'none';
+                    }, 3000);
+                }
+            }
+        }
+        
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+            
+            const toast = document.createElement('div');
+            toast.className = `toast-notification alert alert-${type} alert-dismissible fade show`;
+            toast.style.minWidth = '300px';
+            toast.style.marginBottom = '10px';
+            
+            const icon = type === 'success' ? 'bi-check-circle' : 
+                         type === 'warning' ? 'bi-exclamation-triangle' : 
+                         type === 'error' ? 'bi-x-circle' : 'bi-info-circle';
+            
+            toast.innerHTML = `
+                <i class="bi ${icon} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                if (toast.parentNode) toast.remove();
+            }, 5000);
+        }
+        
+        // File input preview
+        document.getElementById('logoFile')?.addEventListener('change', function(e) {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('logoPreview').src = e.target.result;
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+    </script>
+</body>
+</html>
