@@ -27,7 +27,7 @@
     "cors": "^2.8.5"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "nodemon": "^8.16.0"
   },
   "engines": {
     "node": ">=14.0.0",
@@ -42,4 +42,5 @@
   },
   "homepage": "https://mahallahtv.github.io/almutathahhiriin/",
   "private": true
+
 }
